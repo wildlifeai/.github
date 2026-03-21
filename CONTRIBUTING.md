@@ -115,6 +115,8 @@ git commit -m "fix: add retry logic for BLE command timeout"
 Common types: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`
  
 Write commit messages that explain **what changed and why**, not just what the code does.
+> [!WARNING]
+> **Commit Body Length:** Ensure that any extended description (the body) of your commit messages hard-wraps at **100 characters maximum per line**. If a single line in the body exceeds 100 characters, the `commitlint` CI check will fail.
  
 > [!TIP]
 > **Commit signing:** If your repo requires signed commits, ensure it's configured:
