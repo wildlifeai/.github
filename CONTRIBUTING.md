@@ -21,6 +21,7 @@ Thanks for helping us keep the world wild!🦤🦎🐅🌳🐠
 1. [Post-Merge Cleanup](#5-post-merge-cleanup)
 1. [Repository Protections (Admins Only)](#6-repository-protections-admins-only)
 1. [Quick Reference Cheat-sheet](#7-quick-reference-cheat-sheet)
+1. [AI Usage and Agents](#8-ai-usage-and-agents)
  
 ---
  
@@ -345,10 +346,10 @@ All Wildlife.ai repos should have the following settings configured in GitHub un
  
 - **Default Branch:** Set to `dev`.
 - **Protection Rules** for both `main` and `dev`:
-  - ✅ Require a pull request before merging
-  - ✅ Require at least **1 approval**
-  - ✅ Dismiss stale reviews when new commits are pushed
-  - ✅ Restrict direct pushes — no one should bypass PRs for these branches
+  -  Require a pull request before merging
+  -  Require at least **1 approval**
+  -  Dismiss stale reviews when new commits are pushed
+  -  Restrict direct pushes — no one should bypass PRs for these branches
  
 ---
  
@@ -384,6 +385,26 @@ git checkout dev && git pull origin dev
 git branch -d feature/my-task   # use -D if squash-merged
 ```
  
+---
+
+## 8. AI Usage and Agents
+
+We use AI tools to accelerate development, but all outputs must remain maintainable, portable, and aligned with our engineering standards.
+
+1. Keep the Codebase Clean and Intentional
+- Commit only code and documentation that is reviewed, understood, and necessary
+- Avoid large or duplicated AI-generated documentation
+
+2. Use Standardised Structures
+- Store documentation, agent definitions, and reusable skills in structured locations (e.g. /docs/, /agents/, /skills/)
+- Use tool-agnostic formats (Markdown, JSON and YAML)
+- Document patterns, decisions, and reusable approaches rather than raw outputs
+
+3. Promote Reuse and Avoid Duplication
+- Reuse existing patterns, prompts, and components before creating new ones
+- Consolidate shared logic and knowledge to prevent parallel or duplicated solutions
+- Keep workflows and outputs portable, so any team member or tool can build on them
+
 ---
  
 Questions? Reach out or post in the team's Slack.
