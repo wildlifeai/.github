@@ -22,6 +22,8 @@ Thanks for helping us keep the world wild!🦤🦎🐅🌳🐠
 1. [Repository Protections (Admins Only)](#6-repository-protections-admins-only)
 1. [Quick Reference Cheat-sheet](#7-quick-reference-cheat-sheet)
 1. [AI Usage and Agents](#8-ai-usage-and-agents)
+   - [8.1 Copying the Git Skill Locally](#81-copying-the-git-skill-locally)
+   - [8.2 Wiring the Skill into Your AI Tool](#82-wiring-the-skill-into-your-ai-tool)
  
 ---
  
@@ -90,13 +92,19 @@ This makes it immediately clear which branch depends on which, and prevents conf
  
 ## 3. Standard Workflow
  
+> [!TIP]
+> Before starting any git work, copy the team's git skill to your machine
+> (see [Section 8.1](#81-copying-the-git-skill-locally)) and load it into
+> your AI coding tool (see [Section 8.2](#82-wiring-the-skill-into-your-ai-tool)).
+> It encodes every rule in this section as a strict, agent-readable reference.
+
 ### 3.1 Start a New Task
  
 Always branch from the latest `dev` to ensure you are building on the most recent work:
  
 ```bash
 git checkout dev
-git pull origin dev
+git fetch origin --prune && git rebase origin/dev
 git checkout -b feature/your-descriptive-name
 ```
  
@@ -404,6 +412,95 @@ We use AI tools to accelerate development, but all outputs must remain maintaina
 - Reuse existing patterns, prompts, and components before creating new ones
 - Consolidate shared logic and knowledge to prevent parallel or duplicated solutions
 - Keep workflows and outputs portable, so any team member or tool can build on them
+
+### 8.1 Copying the Git Skill Locally
+
+The team maintains a single source-of-truth skill file at:
+/agents/git-SKILL.md
+
+Copy it to your machine once per project clone:
+
+```bash
+# from the repo root
+mkdir -p ~/.config/wildlife-ai && cp agents/git-SKILL.md ~/.config/wildlife-ai/git-SKILL.md
+```
+
+Or keep it in the repo root and reference it by relative path — either works
+as long as your tool can read it (see Section 8.2).
+
+> [!IMPORTANT]
+> If the skill file is updated in `dev`, pull the latest and re-copy.
+> An outdated local copy will drift from the team's actual rules.
+
+---
+
+### 8.2 Wiring the Skill into Your AI Tool
+
+> [!IMPORTANT]
+> Ensure you have the GitHub CLI (`gh`) installed and authenticated (`gh auth login`), as the skill relies heavily on it.
+
+Load the skill so your agent follows it automatically on every git operation.
+Pick the setup for your tool below — you only need to do this once per project.
+
+---
+
+#### Claude Code
+
+Create or edit `CLAUDE.md` in the repo root:
+
+```markdown
+## Git workflow
+
+Before any git operation, read and strictly follow `~/.config/wildlife-ai/git-SKILL.md`.
+Never perform a git action that contradicts a rule in that file.
+```
+
+Claude Code reads `CLAUDE.md` automatically at session start.
+
+---
+
+#### Cursor
+
+Create or edit `.cursor/rules/git.mdc` in the repo root:
+
+---
+description: Enforces Wildlife.ai git workflow rules for any git operation
+globs: ["**/*"]
+alwaysApply: true
+---
+Before any git operation (branch, commit, push, PR, rebase, cleanup),
+read and strictly follow ~/.config/wildlife-ai/git-SKILL.md.
+Never perform a git action that contradicts a rule in that file.
+
+---
+
+#### GitHub Copilot
+
+Create or edit `.github/copilot-instructions.md`:
+
+```markdown
+## Git workflow
+
+Before any git operation, read and strictly follow `~/.config/wildlife-ai/git-SKILL.md`.
+Never perform a git action that contradicts a rule in that file.
+```
+
+---
+
+#### All other tools (Windsurf, Aider, etc.)
+
+Add the following to your tool's system prompt, project instructions, or
+equivalent config file:
+Before any git operation, read and strictly follow ~/.config/wildlife-ai/git-SKILL.md.
+Never perform a git action that contradicts a rule in that file.
+
+---
+
+> [!NOTE]
+> The skill file is intentionally short (~1,200 tokens) so it can be loaded
+> into context on every session without meaningful cost. If your tool has a
+> context limit, prefer the skill file over any inline git instructions —
+> the skill is the authoritative source.
 
 ---
  
