@@ -422,7 +422,7 @@ Copy it to your machine once per project clone:
 
 ```bash
 # from the repo root
-cp agents/git-SKILL.md ~/.config/wildlife-ai/git-SKILL.md
+mkdir -p ~/.config/wildlife-ai && cp agents/git-SKILL.md ~/.config/wildlife-ai/git-SKILL.md
 ```
 
 Or keep it in the repo root and reference it by relative path — either works
@@ -460,9 +460,11 @@ Claude Code reads `CLAUDE.md` automatically at session start.
 
 Create or edit `.cursor/rules/git.mdc` in the repo root:
 
+---
 description: Enforces Wildlife.ai git workflow rules for any git operation
 globs: ["**/*"]
 alwaysApply: true
+---
 Before any git operation (branch, commit, push, PR, rebase, cleanup),
 read and strictly follow agents/git-SKILL.md.
 Never perform a git action that contradicts a rule in that file.

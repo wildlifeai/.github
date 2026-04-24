@@ -137,18 +137,22 @@ OWNER=$(gh repo view --json owner --jq '.owner.login')
 REPO=$(gh repo view --json name --jq '.name')
 PR=$(gh pr view --json number --jq '.number' 2>/dev/null)
 
-# Count unresolved, non-outdated threads
-gh api graphql -f query="
-{
-  repository(owner:\"$OWNER\", name:\"$REPO\") {
-    pullRequest(number: $PR) {
-      reviewThreads(first: 50) {
-        nodes { isResolved isOutdated }
+# Count unresolved, non-outdated threads (if PR exists)
+if [ -n "$PR" ]; then
+  gh api graphql -f query="
+  {
+    repository(owner:\"$OWNER\", name:\"$REPO\") {
+      pullRequest(number: $PR) {
+        reviewThreads(first: 50) {
+          nodes { isResolved isOutdated }
+        }
       }
     }
-  }
-}" --jq '[.data.repository.pullRequest.reviewThreads.nodes[]
-  | select(.isResolved == false and .isOutdated == false)] | length'
+  }" --jq '[.data.repository.pullRequest.reviewThreads.nodes[]
+    | select(.isResolved == false and .isOutdated == false)] | length'
+else
+  echo "No open PR — skipping thread check"
+fi
 ```
 
 - Result `0` → all threads resolved, proceed
@@ -221,7 +225,7 @@ git rebase --abort                        # bail out entirely
 ```bash
 git checkout dev && git fetch origin --prune && git rebase origin/dev
 git branch -d <merged>              # use -D if squash-merged
-git branch -vv | grep ': gone]' | awk '{print $1}' | xargs git branch -D
+git branch -vv | grep ': gone]' | awk '{print ($1=="*" ? $2 : $1)}' | xargs git branch -D
 ```
 
 ---
@@ -308,5 +312,5 @@ git diff origin/dev...HEAD && gh pr create --base dev --draft
 # cleanup
 git checkout dev && git fetch origin --prune && git rebase origin/dev
 git branch -d <branch>
-git branch -vv | grep ': gone]' | awk '{print $1}' | xargs git branch -D
+git branch -vv | grep ': gone]' | awk '{print ($1=="*" ? $2 : $1)}' | xargs git branch -D
 ```
