@@ -104,7 +104,7 @@ Always branch from the latest `dev` to ensure you are building on the most recen
  
 ```bash
 git checkout dev
-git pull origin dev
+git fetch origin --prune && git rebase origin/dev
 git checkout -b feature/your-descriptive-name
 ```
  
@@ -436,6 +436,9 @@ as long as your tool can read it (see Section 8.2).
 
 ### 8.2 Wiring the Skill into Your AI Tool
 
+> [!IMPORTANT]
+> Ensure you have the GitHub CLI (`gh`) installed and authenticated (`gh auth login`), as the skill relies heavily on it.
+
 Load the skill so your agent follows it automatically on every git operation.
 Pick the setup for your tool below — you only need to do this once per project.
 
@@ -448,7 +451,7 @@ Create or edit `CLAUDE.md` in the repo root:
 ```markdown
 ## Git workflow
 
-Before any git operation, read and strictly follow `agents/git-SKILL.md`.
+Before any git operation, read and strictly follow `~/.config/wildlife-ai/git-SKILL.md`.
 Never perform a git action that contradicts a rule in that file.
 ```
 
@@ -466,7 +469,7 @@ globs: ["**/*"]
 alwaysApply: true
 ---
 Before any git operation (branch, commit, push, PR, rebase, cleanup),
-read and strictly follow agents/git-SKILL.md.
+read and strictly follow ~/.config/wildlife-ai/git-SKILL.md.
 Never perform a git action that contradicts a rule in that file.
 
 ---
@@ -478,7 +481,7 @@ Create or edit `.github/copilot-instructions.md`:
 ```markdown
 ## Git workflow
 
-Before any git operation, read and strictly follow `agents/git-SKILL.md`.
+Before any git operation, read and strictly follow `~/.config/wildlife-ai/git-SKILL.md`.
 Never perform a git action that contradicts a rule in that file.
 ```
 
@@ -488,7 +491,7 @@ Never perform a git action that contradicts a rule in that file.
 
 Add the following to your tool's system prompt, project instructions, or
 equivalent config file:
-Before any git operation, read and strictly follow agents/git-SKILL.md.
+Before any git operation, read and strictly follow ~/.config/wildlife-ai/git-SKILL.md.
 Never perform a git action that contradicts a rule in that file.
 
 ---
