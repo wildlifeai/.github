@@ -176,11 +176,6 @@ gh pr view --json reviewDecision --jq '.reviewDecision'
 threads and code suggestions remain unresolved independently. Check them explicitly:
 
 ```bash
-# Get repo info + PR number for the current branch
-OWNER=$(gh repo view --json owner --jq '.owner.login')
-REPO=$(gh repo view --json name --jq '.name')
-PR=$(gh pr view --json number --jq '.number' 2>/dev/null)
-
 # Count unresolved, non-outdated threads (if PR exists)
 gh pr view --json reviewThreads --jq '[.reviewThreads[] | select(.isResolved == false and .isOutdated == false)] | length' 2>/dev/null || echo "No open PR — skipping thread check"
 ```
