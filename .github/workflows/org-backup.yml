@@ -39,9 +39,11 @@ jobs:
           sudo apt-get install -y rclone zstd jq
 
       - name: Configure rclone
+        env:
+          RCLONE_CONFIG_CONTENTS: ${{ secrets.RCLONE_CONFIG_CONTENTS }}
         run: |
           mkdir -p ~/.config/rclone
-          echo "${{ secrets.RCLONE_CONFIG_CONTENTS }}" > ~/.config/rclone/rclone.conf
+          echo "$RCLONE_CONFIG_CONTENTS" > ~/.config/rclone/rclone.conf
 
       - name: Set variables
         id: vars
