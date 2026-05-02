@@ -1,0 +1,118 @@
+name: Org Backup
+
+on:
+  schedule:
+    - cron: '0 0 * * 0' # Weekly (Sunday UTC)
+  workflow_dispatch:
+
+env:
+  ORG_NAME: wildlifeai
+  BACKUP_PREFIX: backups
+
+jobs:
+  list-repos:
+    runs-on: ubuntu-latest
+    outputs:
+      repos: ${{ steps.set-repos.outputs.repos }}
+    steps:
+      - name: Get repo list
+        id: set-repos
+        env:
+          GH_TOKEN: ${{ secrets.GH_BACKUP_TOKEN }}
+        run: |
+          repos=$(gh repo list $ORG_NAME --limit 1000 --json name -q '.[].name' | jq -R -s -c 'split("\n")[:-1]')
+          echo "repos=$repos" >> $GITHUB_OUTPUT
+
+  backup:
+    needs: list-repos
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        repo: ${{ fromJson(needs.list-repos.outputs.repos) }}
+
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rclone zstd jq
+
+      - name: Configure rclone
+        run: |
+          mkdir -p ~/.config/rclone
+          echo "${{ secrets.RCLONE_CONFIG_CONTENTS }}" > ~/.config/rclone/rclone.conf
+
+      - name: Set variables
+        id: vars
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          REPO_NAME="${{ matrix.repo }}"
+          echo "DATE=${DATE}" >> $GITHUB_ENV
+          echo "ARCHIVE=${REPO_NAME}_${DATE}.tar.zst" >> $GITHUB_ENV
+          echo "REMOTE_DIR=${{ env.BACKUP_PREFIX }}/${REPO_NAME}" >> $GITHUB_ENV
+          echo "REMOTE_FILE=${REPO_NAME}_${DATE}.tar.zst" >> $GITHUB_ENV
+          echo "REMOTE_PATH=${{ env.BACKUP_PREFIX }}/${REPO_NAME}/${REPO_NAME}_${DATE}.tar.zst" >> $GITHUB_ENV
+
+      - name: Skip if already backed up
+        id: skip-check
+        run: |
+          if rclone ls "gdrive:${REMOTE_PATH}" > /dev/null 2>&1; then
+            echo "Backup already exists at gdrive:${REMOTE_PATH}. Skipping."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Clone repo (mirror)
+        if: steps.skip-check.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GH_BACKUP_TOKEN }}
+        run: |
+          git clone --mirror "https://x-access-token:${GH_TOKEN}@github.com/${ORG_NAME}/${{ matrix.repo }}.git"
+
+      - name: Export metadata
+        if: steps.skip-check.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GH_BACKUP_TOKEN }}
+        run: |
+          mkdir meta
+
+          gh api "repos/${ORG_NAME}/${{ matrix.repo }}" > meta/repo.json || true
+          gh api "repos/${ORG_NAME}/${{ matrix.repo }}/issues?per_page=100&state=all" > meta/issues.json || true
+          gh api "repos/${ORG_NAME}/${{ matrix.repo }}/pulls?per_page=100&state=all" > meta/pulls.json || true
+          gh api "repos/${ORG_NAME}/${{ matrix.repo }}/releases" > meta/releases.json || true
+
+      - name: Compress (zstd)
+        if: steps.skip-check.outputs.skip != 'true'
+        run: |
+          tar -I 'zstd -3' -cf "$ARCHIVE" "${{ matrix.repo }}.git" meta
+
+      - name: Upload with retry
+        if: steps.skip-check.outputs.skip != 'true'
+        run: |
+          for i in 1 2 3; do
+            rclone copyto "$ARCHIVE" "gdrive:${REMOTE_PATH}" --checksum && break
+            echo "Retry $i failed..."
+            sleep $((i * 5))
+          done
+
+      - name: Verify upload
+        if: steps.skip-check.outputs.skip != 'true'
+        run: |
+          rclone ls "gdrive:${REMOTE_PATH}" || (echo "Upload verification failed" && exit 1)
+
+      - name: Cleanup
+        if: steps.skip-check.outputs.skip != 'true'
+        run: |
+          rm -rf "${{ matrix.repo }}.git" meta "$ARCHIVE"
+
+  summary:
+    needs: backup
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Summary
+        run: |
+          echo "Backup run completed at $(date)"
+          echo "Check job logs for per-repo results"
