@@ -1,0 +1,56 @@
+# PR-Agent (reusable) — AI code review with Gemini
+#
+# Called by a thin workflow in each repo (see workflow-templates/pr-agent-review.yml
+# and docs/pr-agent.md). Uses the community-owned PR-Agent (Apache 2.0,
+# https://github.com/The-PR-Agent/pr-agent) with the org's Google AI Studio key.
+#
+# House defaults live here so every repo reviews the same way; a repo can
+# override anything with a .pr_agent.toml in its root.
+
+name: PR-Agent (reusable)
+
+on:
+  workflow_call:
+    secrets:
+      GEMINI_API_KEY:
+        description: Google AI Studio API key (org secret)
+        required: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  pr_agent:
+    name: PR-Agent
+    # PR events, or comments made ON a pull request (not plain issues)
+    if: ${{ github.event_name == 'pull_request' || (github.event_name == 'issue_comment' && github.event.issue.pull_request) }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run PR-Agent
+        uses: The-PR-Agent/pr-agent@main # TODO: pin to a release tag once settled
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+          # Gemini via Google AI Studio. LiteLLM reads GEMINI_API_KEY natively;
+          # the dotted form covers PR-Agent's own google_ai_studio settings path.
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GOOGLE_AI_STUDIO.GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          CONFIG.MODEL: gemini/gemini-2.5-flash
+          CONFIG.FALLBACK_MODELS: '["gemini/gemini-2.5-flash-lite"]'
+
+          # What runs automatically when a PR opens
+          GITHUB_ACTION_CONFIG.AUTO_REVIEW: "true"
+          GITHUB_ACTION_CONFIG.AUTO_DESCRIBE: "true"
+          GITHUB_ACTION_CONFIG.AUTO_IMPROVE: "false"
+
+          # Org house rules, applied to every repo
+          PR_REVIEWER.EXTRA_INSTRUCTIONS: >-
+            Use New Zealand English (organisation, programme, analyse).
+            Prioritise correctness, security, and careful handling of wildlife
+            and location data (taonga species locations must never be exposed
+            by default). Be concise and concrete; suggest fixes rather than
+            restating problems. Do not block on style nitpicks.
+          PR_DESCRIPTION.EXTRA_INSTRUCTIONS: >-
+            Use New Zealand English. Keep the description short and factual.

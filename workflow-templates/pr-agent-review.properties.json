@@ -1,0 +1,6 @@
+{
+  "name": "PR-Agent code review (Gemini)",
+  "description": "AI code review on pull requests: automatic review and description when a PR opens, plus /review, /describe, /improve and /ask commands in PR comments. Uses the organisation's GEMINI_API_KEY secret; house rules maintained in wildlifeai/.github.",
+  "iconName": "pr-agent-review",
+  "categories": ["Code quality"]
+}
