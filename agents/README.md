@@ -21,9 +21,8 @@ setup. Personal tool configs (`.claude/`, `.cursorrules`, `.windsurfrules`) stay
 gitignored.
 
 Rolling this out to a repo that doesn't have it yet:
-[`docs_structure_rollout.md`](docs_structure_rollout.md) — verified per-repo checklists
-for website, backend, mobile and hardware, including the developer-discussion
-(`documentation/development reports/`) and issue-tracking conventions that go with it.
+[`docs_structure_rollout.md`](docs_structure_rollout.md) — the five elements, the two
+rules behind them (docs are the record, issues are the tracker), and the steps.
 
 ## Org-wide skills (this folder)
 
