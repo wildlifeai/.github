@@ -1,6 +1,11 @@
 # git-skill — Wildlife.ai
 > Never assume branch state. Fetch first. Inspect. Act.
 
+> **Scope:** org-wide default for every repo. A repository's own `AGENTS.md` /
+> `.agents/skills/SKILL.md` may tighten these rules and then takes precedence — e.g.
+> stacked feature branches under external review are frozen: no rebase and no
+> force-push of any kind. See [`README.md`](README.md).
+
 ---
 
 ## PROHIBITED (no exceptions)
