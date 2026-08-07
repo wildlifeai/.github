@@ -413,26 +413,20 @@ We use AI tools to accelerate development, but all outputs must remain maintaina
 - Consolidate shared logic and knowledge to prevent parallel or duplicated solutions
 - Keep workflows and outputs portable, so any team member or tool can build on them
 
-### 8.1 Copying the Git Skill Locally
+### 8.1 Where Skills Live (No Local Copies)
 
-The team maintains a single source-of-truth skill file at:
-/agents/git-SKILL.md
+Skills are **committed to the repositories themselves** so they cannot drift:
 
-Copy it to your machine once per project clone:
+- Every repo carries `AGENTS.md` (root quickstart), `CLAUDE.md` (`@AGENTS.md` import)
+  and `.agents/skills/SKILL.md` (repo-specific rules). Agents load them automatically —
+  there is nothing to copy or configure per machine.
+- Org-wide skills, like the git skill below, live in this repo's
+  [`/agents/`](agents/README.md) folder and are referenced in place from the per-repo
+  files. Repo rules may tighten org rules and then take precedence.
+- Adding this structure to a repo that predates it:
+  [`agents/docs_structure_rollout.md`](agents/docs_structure_rollout.md).
 
-```bash
-# from the repo root
-mkdir -p ~/.config/wildlife-ai && cp agents/git-SKILL.md ~/.config/wildlife-ai/git-SKILL.md
-```
-
-Or keep it in the repo root and reference it by relative path — either works
-as long as your tool can read it (see Section 8.2).
-
-> [!IMPORTANT]
-> If the skill file is updated in `dev`, pull the latest and re-copy.
-> An outdated local copy will drift from the team's actual rules.
-
----
+The team maintains the single source-of-truth git skill at `/agents/git-SKILL.md`.
 
 ### 8.2 Wiring the Skill into Your AI Tool
 
@@ -446,16 +440,11 @@ Pick the setup for your tool below — you only need to do this once per project
 
 #### Claude Code
 
-Create or edit `CLAUDE.md` in the repo root:
-
-```markdown
-## Git workflow
-
-Before any git operation, read and strictly follow `~/.config/wildlife-ai/git-SKILL.md`.
-Never perform a git action that contradicts a rule in that file.
-```
-
-Claude Code reads `CLAUDE.md` automatically at session start.
+Nothing to wire in repos that follow Section 8.1: the committed `CLAUDE.md` at the repo
+root auto-loads at session start and pulls in `AGENTS.md`, which points at the skills
+(including the git skill). For a repo that has not adopted the structure yet, add the
+three files instead of a local copy — see
+[`agents/docs_structure_rollout.md`](agents/docs_structure_rollout.md).
 
 ---
 
