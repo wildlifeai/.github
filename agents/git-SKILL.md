@@ -27,10 +27,16 @@
 ## PRE-FLIGHT — every session, no exceptions
 
 ```bash
+git config --get-all remote.origin.fetch   # first session in a clone, see PUSH
 git fetch origin --prune
 git status
 git branch -vv
 ```
+
+If the refspec is not `+refs/heads/*:refs/remotes/origin/*`, stop and fix it
+first. Everything below reads `origin/*` refs that the fetch did not update,
+and every state in the table will be wrong. See **`origin/<branch>` is a cache,
+and it lies** under PUSH.
 
 **`branch -vv` states:**
 
@@ -141,6 +147,66 @@ git push -u origin <branch>                      # first push
 git push origin <branch>                         # subsequent
 git push --force-with-lease origin <branch>      # after rebase/amend
 ```
+
+### `origin/<branch>` is a cache, and it lies
+
+`origin/<branch>` is a local snapshot, not the server. Building a commit on a
+stale one, then pushing, rewinds the branch and silently discards whatever was
+really there. This has bitten us twice on the firmware repo, once nearly
+discarding a merge commit. `--force-with-lease` does not protect you: it
+compares the server against that same stale snapshot, sees a match, and
+force-pushes the rewind.
+
+Two ways the snapshot goes stale:
+
+**1. Your clone only fetches one branch.** Check the refspec before trusting any
+fetch:
+
+```bash
+git config --get-all remote.origin.fetch
+# want: +refs/heads/*:refs/remotes/origin/*
+# a single-branch clone shows only +refs/heads/main:refs/remotes/origin/main
+```
+
+With a single-branch refspec, `git fetch origin --prune` reports success and
+updates nothing but `main`. Every other `origin/*` ref stays frozen at whenever
+it was last fetched by name, for the life of the clone. Fix it once:
+
+```bash
+git config --unset-all remote.origin.fetch
+git config --add remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
+git fetch origin --prune
+```
+
+`git clone --depth`, `--single-branch`, and `--branch <b>` all produce this, so
+any shallow or targeted clone needs the check.
+
+**2. You pushed a raw SHA.** Pushing a detached commit does not move the
+tracking ref, only pushing from a checked-out tracking branch does:
+
+```bash
+git push origin <sha>:refs/heads/<branch>   # refs/remotes/origin/<branch> stays PUT
+```
+
+**Rule: fetch immediately before you read `origin/<branch>`, again right after
+any push, and verify rather than assume.**
+
+```bash
+git fetch origin
+git rev-parse origin/<branch>                          # must equal what you pushed
+git merge-base --is-ancestor origin/<branch> <new-sha> \
+  && echo "safe: remote tip is an ancestor" \
+  || echo "STOP: this push would discard remote commits"
+```
+
+When the two disagree, believe the server, not the cache:
+
+```bash
+git ls-remote origin <branch>          # asks the server, no refs touched
+```
+
+A non-fast-forward rejection is git catching this for you. Never retry it with
+`--force`; re-fetch, inspect the new tip, and rebuild on it.
 
 ---
 
@@ -287,6 +353,9 @@ git log --oneline --follow -- <file>                # file history
 10. If Layer 1 returns `CHANGES_REQUESTED` → stop, report to developer, do not commit or push
 11. If Layer 2 returns unresolved thread count `> 0` → stop, list thread count, wait for developer to resolve or dismiss on GitHub
 12. If Layer 3 returns CI failures → warn, do not silently proceed
+13. Check `git config --get-all remote.origin.fetch` once per clone. If it is not `+refs/heads/*:refs/remotes/origin/*`, every `fetch` you run is a no-op for every branch but one, and it reports success anyway
+14. Never build a commit on `origin/<branch>` without fetching first, and re-fetch after every push before building on top. A raw-SHA push leaves the tracking ref stale, and `--force-with-lease` reads that same stale ref, so it will happily force-push a rewind
+15. Never respond to a non-fast-forward rejection with `--force`. Re-fetch, inspect the new tip, rebuild on it
 
 ---
 
@@ -312,6 +381,9 @@ Confused?       DIAGNOSTICS — never guess
 ## QUICK REFERENCE
 
 ```bash
+# once per clone: a single-branch refspec makes every fetch below a silent no-op
+git config --get-all remote.origin.fetch   # want +refs/heads/*:refs/remotes/origin/*
+
 # session start
 git fetch origin --prune && git status && git branch -vv
 
@@ -333,6 +405,10 @@ git log --oneline origin/dev..HEAD
 git push -u origin <branch>                      # first
 git push origin <branch>                         # subsequent
 git push --force-with-lease origin <branch>      # post-rebase
+
+# after ANY push, before building on top (a raw-SHA push leaves origin/<b> stale)
+git fetch origin && git rev-parse origin/<branch>
+git merge-base --is-ancestor origin/<branch> <new-sha> || echo "STOP: would discard remote commits"
 
 # pr-review state (if PR exists — run before every commit/push)
 gh pr view --json reviewDecision,reviews,statusCheckRollup,reviewThreads --jq '{decision:.reviewDecision,changes_req:([(.reviews // [])[]|select(.state=="CHANGES_REQUESTED")]|length),threads:([(.reviewThreads // [])[]|select(.isResolved==false and .isOutdated==false)]|length),ci_fail:([(.statusCheckRollup // [])[]|select(.conclusion=="FAILURE")]|length)}' 2>/dev/null
